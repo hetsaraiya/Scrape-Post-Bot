@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 
 import redis.asyncio as aioredis
 
@@ -14,6 +15,7 @@ from app.pipeline.generator import DraftGenerator, GenerationError
 from app.pipeline.prompts import load_evaluation_prompt, load_generation_prompt
 from app.services.content_queue import ContentQueue
 from app.services.draft_store import DraftStore
+from app.services.metrics import MetricsService
 
 logger = logging.getLogger(__name__)
 
@@ -25,15 +27,24 @@ async def pipeline_worker(redis: aioredis.Redis) -> None:
     queue = ContentQueue(redis)
     dedup = DedupService(redis)
     draft_store = DraftStore(redis)
+    metrics = MetricsService(redis)
 
     logger.info("Pipeline worker started")
 
     while True:
         try:
+            # Update heartbeat
+            await redis.hset("pipeline:status", mapping={
+                "state": "running",
+                "last_heartbeat": datetime.now(timezone.utc).isoformat(),
+            })
+
             item = await queue.pop()
             if item is None:
                 await asyncio.sleep(5)
                 continue
+
+            await metrics.increment("items_processed")
 
             # Reload prompts each iteration for hot-reload support
             eval_config = load_evaluation_prompt()
@@ -44,6 +55,7 @@ async def pipeline_worker(redis: aioredis.Redis) -> None:
             # Dedup check
             if await dedup.is_duplicate(item):
                 logger.debug("Skipping duplicate: %s", item.title)
+                await metrics.increment("dedup_hits")
                 continue
 
             # Evaluate newsworthiness
@@ -54,16 +66,22 @@ async def pipeline_worker(redis: aioredis.Redis) -> None:
                     evaluation.score,
                     item.title,
                 )
+                await metrics.increment("eval_failed")
                 await dedup.mark_processed(item)
                 continue
+
+            await metrics.increment("eval_passed")
 
             # Generate draft
             try:
                 draft = await generator.generate(item, evaluation)
             except GenerationError as exc:
                 logger.warning("Generation failed for %s: %s", item.id, exc)
+                await metrics.increment("gen_errors")
                 await dedup.mark_processed(item)
                 continue
+
+            await metrics.increment("gen_success")
 
             # Store and mark processed
             await draft_store.store(draft)
@@ -72,6 +90,7 @@ async def pipeline_worker(redis: aioredis.Redis) -> None:
 
         except Exception:
             logger.exception("Pipeline worker error")
+            await redis.hset("pipeline:status", "state", "error")
             await asyncio.sleep(1)
 
 
@@ -93,3 +112,12 @@ async def stop_pipeline_worker() -> None:
             pass
         _worker_task = None
         logger.info("Pipeline worker stopped")
+
+    # Update status in Redis
+    from app.core.redis import get_redis as _get_redis
+
+    try:
+        r = _get_redis()
+        await r.hset("pipeline:status", "state", "stopped")
+    except RuntimeError:
+        pass
