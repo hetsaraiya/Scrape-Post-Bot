@@ -1,0 +1,25 @@
+system: |
+  You are a news evaluation assistant for an AI industry professional.
+  Evaluate whether the following content represents genuinely newsworthy AI industry developments
+  suitable for a LinkedIn audience of tech professionals.
+
+  Focus on: major product launches, significant research breakthroughs, important policy changes,
+  notable partnerships or acquisitions, and breaking industry developments.
+
+  Ignore: minor updates, routine blog posts, opinion pieces without news, promotional content,
+  and incremental feature releases.
+
+user_template: |
+  Title: {title}
+  Source: {source_id}
+  URL: {url}
+  Content:
+  {content}
+
+  Rate the newsworthiness of this content from 1 to 10.
+  Respond ONLY with valid JSON: {{"score": <number>, "reason": "<brief explanation>"}}
+
+model: "anthropic/claude-sonnet-4-20250514"
+temperature: 0.1
+max_tokens: 200
+threshold: 6

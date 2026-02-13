@@ -1,0 +1,50 @@
+# Web framework (includes uvicorn, pydantic)
+fastapi[standard]~=0.128.0
+
+# Async Redis client with hiredis parser for performance
+redis[hiredis]~=7.1.0
+
+# Type-safe configuration from env vars and .env files
+pydantic-settings~=2.12.0
+
+# Fast JSON serialization
+orjson~=3.10.0
+
+# Structured JSON logging for production
+python-json-logger~=3.2.0
+
+# Modern, production-ready logging
+loguru~=0.7.0
+
+# RSS/Atom feed parsing
+feedparser~=6.0.0
+
+# Async HTTP client
+httpx~=0.28.0
+
+# Async rate limiting (token bucket)
+aiolimiter~=1.2.0
+
+# robots.txt parsing
+protego~=0.4.0
+
+# Retry with exponential backoff
+tenacity~=9.0.0
+
+# Full-text article extraction
+trafilatura~=2.0.0
+
+# HTML parsing for blog scraping fallback
+beautifulsoup4~=4.13.0
+
+# Browser impersonation for scraping
+curl-cffi~=0.7.0
+
+# Async job scheduler with FastAPI lifespan integration
+apscheduler~=3.10.0
+
+# LLM gateway (OpenAI-compatible API for multiple providers)
+litellm~=1.63
+
+# YAML config parsing
+pyyaml~=6.0
