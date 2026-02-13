@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from app.api.routes.health import router as health_router
 from app.api.v1.drafts import router as drafts_router
+from app.api.v1.pipeline import router as pipeline_router
 from app.api.v1.sources import router as sources_router
 from app.core.config import get_settings
 from app.core.logging import get_logger, setup_logging
@@ -39,8 +40,28 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Shutdown complete")
 
 
+tags_metadata = [
+    {"name": "health", "description": "Application and Redis health checks"},
+    {
+        "name": "sources",
+        "description": "Manage monitored content sources. CRUD operations and manual polling.",
+    },
+    {"name": "drafts", "description": "View generated LinkedIn draft posts."},
+    {
+        "name": "pipeline",
+        "description": "Pipeline status, metrics, and manual run triggers.",
+    },
+]
+
 app = FastAPI(
     title="News Post",
+    description=(
+        "AI news monitoring and LinkedIn post generation pipeline. "
+        "Watches curated AI industry sources, evaluates newsworthiness, "
+        "deduplicates across sources, and drafts LinkedIn-ready posts."
+    ),
+    version="0.1.0",
+    openapi_tags=tags_metadata,
     lifespan=lifespan,
 )
 
@@ -48,3 +69,4 @@ app.add_middleware(CorrelationIdMiddleware)
 app.include_router(health_router)
 app.include_router(sources_router, prefix="/api/v1")
 app.include_router(drafts_router, prefix="/api/v1")
+app.include_router(pipeline_router, prefix="/api/v1")
