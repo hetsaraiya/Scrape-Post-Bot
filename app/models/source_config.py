@@ -14,7 +14,6 @@ from pydantic import BaseModel, Field
 class SourceType(str, enum.Enum):
     """Supported source types."""
 
-    RSS = "rss"
     BLOG = "blog"
 
 

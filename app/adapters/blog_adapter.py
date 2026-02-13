@@ -1,21 +1,17 @@
 """Blog adapter with full-text extraction via trafilatura.
 
-Discovers articles through RSS/Atom feed when available, otherwise falls
-back to scraping article links from the HTML listing page.  Full article
-text is always extracted using trafilatura.
+Discovers articles by scraping article links from the HTML listing page
+using curl_cffi browser impersonation.  Full article text is always
+extracted using trafilatura.
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import re
-from calendar import timegm
-from datetime import datetime, timezone
 from typing import List
 from urllib.parse import urljoin, urlparse
 
-import feedparser
 from bs4 import BeautifulSoup
 from curl_cffi.requests import AsyncSession
 
@@ -30,15 +26,11 @@ from app.services.content_extractor import ContentExtractor
 logger = logging.getLogger(__name__)
 
 
-
 class BlogAdapter(SourceAdapter):
     """Adapter for blog sources with full-text extraction.
 
-    Strategy (in priority order):
-    1. If ``metadata["feed_url"]`` is set, fetch that as RSS/Atom.
-    2. Try parsing the source URL itself as RSS/Atom.
-    3. Auto-discover a feed <link> tag in the HTML.
-    4. Fall back to scraping the HTML listing page for article links.
+    Scrapes the source URL's HTML listing page for article links, then
+    extracts full text from each article using trafilatura.
     """
 
     def get_poll_interval(self) -> int:
@@ -47,41 +39,12 @@ class BlogAdapter(SourceAdapter):
     # --- Public entry point -----------------------------------------------
 
     async def fetch(self) -> List[ContentItem]:
-        """Fetch blog articles using the best available strategy."""
+        """Fetch blog articles by scraping the HTML listing page."""
         url = self.config.url
-        raw_text = await self._fetch_page(url)
+        html = await self._fetch_page(url)
+        return await self._scrape_html_listing(html, url)
 
-        # 1. Explicit feed URL in metadata
-        feed_url = self.config.metadata.get("feed_url")
-        if feed_url:
-            items = await self._fetch_via_feed(feed_url)
-            if items:
-                return items
-            logger.info("Explicit feed_url %s yielded no items, falling back", feed_url)
-
-        # 2. Try parsing source URL as RSS/Atom
-        feed = await asyncio.to_thread(feedparser.parse, raw_text)
-        if not feed.bozo and feed.entries:
-            return await self._extract_from_urls(
-                [(e.link, e) for e in feed.entries if getattr(e, "link", None)],
-                origin=url,
-                discovery="rss_atom",
-            )
-
-        # 3. Auto-discover feed <link> from HTML
-        discovered = self._discover_feed_url(raw_text, url)
-        if discovered:
-            logger.info("Discovered feed URL %s from HTML <link> tag", discovered)
-            items = await self._fetch_via_feed(discovered)
-            if items:
-                return items
-
-        # 4. Fall back to HTML scraping
-        reason = feed.get("bozo_exception", "0 entries") if feed.bozo else "0 entries"
-        logger.info("Feed %s not usable (%s), falling back to HTML scraping", url, reason)
-        return await self._scrape_html_listing(raw_text, url)
-
-    # --- Shared HTTP helper -----------------------------------------------
+    # --- HTTP helper ------------------------------------------------------
 
     async def _fetch_page(self, url: str) -> str:
         """Fetch a page using browser impersonation and rate limiting."""
@@ -91,27 +54,7 @@ class BlogAdapter(SourceAdapter):
             response.raise_for_status()
         return response.text
 
-    # --- Strategy: RSS/Atom feed ------------------------------------------
-
-    async def _fetch_via_feed(self, feed_url: str) -> List[ContentItem]:
-        """Fetch and parse a specific RSS/Atom feed URL."""
-        text = await self._fetch_page(feed_url)
-        feed = await asyncio.to_thread(feedparser.parse, text)
-
-        if feed.bozo and not feed.entries:
-            logger.warning(
-                "Feed %s malformed with no entries: %s",
-                feed_url, feed.get("bozo_exception", "Unknown"),
-            )
-            return []
-
-        return await self._extract_from_urls(
-            [(e.link, e) for e in feed.entries if getattr(e, "link", None)],
-            origin=feed_url,
-            discovery="rss_atom",
-        )
-
-    # --- Strategy: HTML listing scrape ------------------------------------
+    # --- HTML listing scrape ----------------------------------------------
 
     async def _scrape_html_listing(self, html: str, base_url: str) -> List[ContentItem]:
         """Scrape article links from an HTML listing page and extract each."""
@@ -129,25 +72,20 @@ class BlogAdapter(SourceAdapter):
             return []
 
         logger.info("Discovered %d new article URLs from %s", len(new_urls), base_url)
-        return await self._extract_from_urls(
-            [(u, None) for u in new_urls],
-            origin=base_url,
-            discovery="html_scrape",
-        )
+        return await self._extract_from_urls(new_urls, origin=base_url)
 
-    # --- Shared extraction loop -------------------------------------------
+    # --- Extraction loop --------------------------------------------------
 
     async def _extract_from_urls(
         self,
-        url_entries: list[tuple[str, feedparser.FeedParserDict | None]],
+        urls: list[str],
         origin: str,
-        discovery: str,
     ) -> List[ContentItem]:
-        """Extract content from a list of (url, optional_feed_entry) pairs."""
+        """Extract content from a list of article URLs."""
         items: list[ContentItem] = []
         extractor = ContentExtractor()
 
-        for article_url, entry in url_entries:
+        for article_url in urls:
             content = await extractor.extract_article(
                 article_url,
                 language=self.config.metadata.get("language"),
@@ -158,7 +96,7 @@ class BlogAdapter(SourceAdapter):
                 logger.debug("Could not extract content from %s", article_url)
                 continue
 
-            item = self._build_item(article_url, content, entry, discovery)
+            item = self._build_item(article_url, content)
             if item:
                 items.append(item)
 
@@ -223,64 +161,25 @@ class BlogAdapter(SourceAdapter):
 
         return urls
 
-    # --- Feed discovery ---------------------------------------------------
+    # --- Item builder -----------------------------------------------------
 
-    @staticmethod
-    def _discover_feed_url(html: str, base_url: str) -> str | None:
-        """Look for RSS/Atom <link> tags in the HTML <head>."""
-        soup = BeautifulSoup(html, "html.parser")
-        for link in soup.find_all("link", rel="alternate"):
-            link_type = (link.get("type") or "").lower()
-            if "rss" in link_type or "atom" in link_type:
-                href = link.get("href")
-                if href:
-                    return urljoin(base_url, href)
-        return None
-
-    # --- Item builders ----------------------------------------------------
-
-    def _build_item(
-        self,
-        url: str,
-        content: str,
-        entry: feedparser.FeedParserDict | None,
-        discovery: str,
-    ) -> ContentItem | None:
-        """Build a ContentItem from extracted content and optional feed entry."""
-        if entry:
-            title = getattr(entry, "title", None) or self._title_from_url(url)
-            item_id = getattr(entry, "id", None) or getattr(entry, "guid", None) or url
-            published_at = self._parse_date(entry)
-        else:
-            title = self._title_from_url(url)
-            item_id = url
-            published_at = None
+    def _build_item(self, url: str, content: str) -> ContentItem | None:
+        """Build a ContentItem from extracted content."""
+        title = self._title_from_url(url)
 
         return ContentItem(
-            id=f"{self.source_id}:{item_id}",
+            id=f"{self.source_id}:{url}",
             source_id=self.source_id,
             url=url,
             title=title,
             content=content,
-            published_at=published_at,
+            published_at=None,
             metadata={
                 "extraction_method": "trafilatura",
-                "discovery_method": discovery,
+                "discovery_method": "html_scrape",
                 "is_full_text": True,
             },
         )
-
-    @staticmethod
-    def _parse_date(entry: feedparser.FeedParserDict) -> datetime | None:
-        """Extract published date from feed entry."""
-        for attr in ("published_parsed", "updated_parsed"):
-            ts = getattr(entry, attr, None)
-            if ts:
-                try:
-                    return datetime.fromtimestamp(timegm(ts), tz=timezone.utc)
-                except (ValueError, OverflowError):
-                    continue
-        return None
 
     @staticmethod
     def _title_from_url(url: str) -> str:
