@@ -16,6 +16,10 @@ dependencies = [
     "beautifulsoup4>=4.14.3",
     "curl-cffi>=0.14.0",
     "litellm>=1.81.11",
+    "uvicorn>=0.40.0",
+    "orjson>=3.11.9",
+    "apscheduler>=3.11.2",
+    "trafilatura>=2.0.0",
 ]
 
 [project.optional-dependencies]

@@ -1,0 +1,30 @@
+export const theme = {
+  colors: {
+    bg: '#0b0d12',
+    surface: '#12151c',
+    surfaceAlt: '#1a1f2a',
+    border: '#252b38',
+    borderStrong: '#323a4c',
+    text: '#e6e9ef',
+    textMuted: '#8a93a6',
+    textDim: '#5a6376',
+    accent: '#7c5cff',
+    accentHover: '#9079ff',
+    success: '#3ddc97',
+    warning: '#ffb454',
+    danger: '#ff6b6b',
+    info: '#5cb8ff',
+  },
+  radius: { sm: '6px', md: '10px', lg: '14px', pill: '999px' },
+  spacing: (n) => `${n * 4}px`,
+  shadow: {
+    sm: '0 1px 2px rgba(0,0,0,.3)',
+    md: '0 4px 12px rgba(0,0,0,.35)',
+    lg: '0 12px 32px rgba(0,0,0,.45)',
+  },
+  font: {
+    body: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif',
+    mono: '"JetBrains Mono", "Fira Code", Menlo, monospace',
+  },
+  transition: '160ms cubic-bezier(.4,0,.2,1)',
+};
