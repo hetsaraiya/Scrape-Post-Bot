@@ -29,7 +29,3 @@ class SourceAdapter(ABC):
     def get_poll_interval(self) -> int:
         """Return poll interval in seconds."""
         pass
-
-    def get_source_id(self) -> str:
-        """Return source identifier."""
-        return self.source_id

@@ -120,9 +120,8 @@ class BlogAdapter(SourceAdapter):
 
     def _extract_article_urls(self, html: str, base_url: str) -> list[str]:
         """Extract unique article URLs from an HTML listing page."""
-        settings = get_settings()
-        prefixes = tuple(p.strip() for p in settings.ARTICLE_PATH_PREFIXES.split(","))
-        max_articles = settings.MAX_HTML_ARTICLES
+        prefixes = self._article_path_prefixes()
+        max_articles = get_settings().MAX_HTML_ARTICLES
 
         soup = BeautifulSoup(html, "html.parser")
         parsed_base = urlparse(base_url)
@@ -160,6 +159,19 @@ class BlogAdapter(SourceAdapter):
                     break
 
         return urls
+
+    def _article_path_prefixes(self) -> tuple[str, ...]:
+        """URL path prefixes that count as articles for this source.
+
+        Sources can override the global default via the
+        ``article_path_prefixes`` metadata key (list or comma-separated string).
+        """
+        configured = self.config.metadata.get("article_path_prefixes")
+        if isinstance(configured, str):
+            configured = configured.split(",")
+        if not configured:
+            configured = get_settings().ARTICLE_PATH_PREFIXES.split(",")
+        return tuple(p.strip() for p in configured if p.strip())
 
     # --- Item builder -----------------------------------------------------
 

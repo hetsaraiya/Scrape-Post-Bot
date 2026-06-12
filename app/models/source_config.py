@@ -5,7 +5,6 @@ from __future__ import annotations
 import enum
 from datetime import datetime, timezone
 from typing import Any, Optional
-from urllib.parse import urlparse
 
 import orjson
 from pydantic import BaseModel, Field
@@ -35,22 +34,12 @@ class SourceConfig(BaseModel):
     error_count: int = 0
     metadata: dict[str, Any] = Field(
         default_factory=dict,
-        description="Adapter-specific config (language, selectors, etc.)",
-    )
-    rate_limit: Optional[float] = Field(
-        default=0.5, description="Max requests per second (default 1 per 2s)"
+        description="Adapter-specific config (language, article_path_prefixes, etc.)",
     )
     baseline_complete: bool = Field(
         default=False,
         description="True after initial baseline scrape has run for this source",
     )
-
-    model_config = {"json_encoders": {datetime: lambda v: v.isoformat()}}
-
-    @property
-    def domain(self) -> str:
-        """Extract domain from the source URL."""
-        return urlparse(self.url).netloc
 
     def to_redis(self) -> str:
         """Serialize to JSON string for Redis storage."""

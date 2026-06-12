@@ -75,31 +75,6 @@ export function Input({ label, error, style, ...rest }) {
   );
 }
 
-export function Select({ label, children, ...rest }) {
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {label && (
-        <span style={{ fontSize: 13, color: t.colors.text, fontWeight: 500 }}>{label}</span>
-      )}
-      <select
-        style={{
-          background: t.colors.bg,
-          color: t.colors.text,
-          border: `1px solid ${t.colors.border}`,
-          borderRadius: t.radius.md,
-          padding: '8px 12px',
-          fontSize: 14,
-          fontFamily: t.font.body,
-          outline: 'none',
-        }}
-        {...rest}
-      >
-        {children}
-      </select>
-    </label>
-  );
-}
-
 export function Card({ children, style, ...rest }) {
   return (
     <div

@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # Pipeline
     PIPELINE_ENABLED: bool = True
 
-    GEMINI_API_KEY: str = None
+    GEMINI_API_KEY: str | None = None
 
     @field_validator("API_KEY")
     @classmethod

@@ -24,8 +24,3 @@ class AdapterRegistry:
         if source_config.type not in cls._adapters:
             raise ValueError(f"Unknown source type: {source_config.type}")
         return cls._adapters[source_config.type](source_config)
-
-    @classmethod
-    def get_supported_types(cls) -> list[SourceType]:
-        """Return list of registered source types."""
-        return list(cls._adapters.keys())

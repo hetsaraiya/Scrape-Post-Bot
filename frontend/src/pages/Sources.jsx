@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { api } from '../api/client';
 import { useApi } from '../hooks/useApi';
-import { Badge, Button, Card, EmptyState, ErrorBanner, Input, Modal, Select, Spinner } from '../components/ui';
-import { Header, SectionTitle } from './Dashboard';
+import { Badge, Button, Card, EmptyState, ErrorBanner, Input, Modal, Spinner } from '../components/ui';
+import { Header } from './Dashboard';
 import { theme } from '../theme';
 import { formatInterval, relativeTime } from '../utils/format';
 
 const t = theme;
-
-const SOURCE_TYPES = ['rss', 'blog', 'twitter', 'reddit', 'youtube', 'arxiv'];
 
 export default function Sources() {
   const { data, error, loading, refetch } = useApi(api.listSources, []);
@@ -129,7 +127,6 @@ function SourceRow({ source: s, onEdit, onDelete, onPoll, onToggle }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
           <span style={{ fontWeight: 600, fontSize: 14 }}>{s.name}</span>
-          <Badge tone="accent">{s.type}</Badge>
           <Badge tone={s.is_active ? 'success' : 'neutral'}>{s.is_active ? 'Active' : 'Paused'}</Badge>
           {s.error_count > 0 && <Badge tone="danger">{s.error_count} errors</Badge>}
         </div>
@@ -174,7 +171,6 @@ function SourceForm({ source, onClose, onSaved }) {
   const [form, setForm] = useState({
     name: source?.name || '',
     url: source?.url || '',
-    type: source?.type || 'rss',
     poll_interval: source?.poll_interval || 900,
     is_active: source?.is_active ?? true,
   });
@@ -199,7 +195,7 @@ function SourceForm({ source, onClose, onSaved }) {
         await api.createSource({
           name: form.name,
           url: form.url,
-          type: form.type,
+          type: 'blog',
           poll_interval: Number(form.poll_interval),
         });
         onSaved('Source created');
@@ -231,15 +227,6 @@ function SourceForm({ source, onClose, onSaved }) {
         {err && <ErrorBanner error={{ message: err }} />}
         <Input label="Name" value={form.name} onChange={(e) => update('name', e.target.value)} placeholder="e.g. OpenAI Blog" />
         <Input label="URL" value={form.url} onChange={(e) => update('url', e.target.value)} placeholder="https://…" />
-        {!isEdit && (
-          <Select label="Type" value={form.type} onChange={(e) => update('type', e.target.value)}>
-            {SOURCE_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </Select>
-        )}
         <Input
           label="Poll interval (seconds)"
           type="number"

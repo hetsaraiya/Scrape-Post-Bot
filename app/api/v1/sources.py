@@ -2,22 +2,23 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timezone
-from typing import List
+from typing import Callable, List
 
-import orjson
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
-from app.adapters.registry import AdapterRegistry
 from app.api.deps import get_current_api_key
 from app.core.redis import get_redis
 from app.models.source_config import SourceConfig, SourceType
 from app.scheduler.jobs import SourceScheduler, poll_source_job
 from app.scheduler.scheduler import get_source_scheduler
 from app.services.baseline import perform_baseline_scrape
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sources", tags=["sources"])
 
@@ -76,19 +77,16 @@ async def _get_source_or_404(source_id: str, redis: Redis) -> SourceConfig:
 
 
 def _to_response(config: SourceConfig) -> SourceResponse:
-    return SourceResponse(
-        id=config.id,
-        name=config.name,
-        url=config.url,
-        type=config.type,
-        poll_interval=config.poll_interval,
-        is_active=config.is_active,
-        created_at=config.created_at,
-        updated_at=config.updated_at,
-        last_poll_at=config.last_poll_at,
-        error_count=config.error_count,
-        last_error=config.last_error,
-    )
+    return SourceResponse.model_validate(config.model_dump())
+
+
+def _with_scheduler(action: Callable[[SourceScheduler], None]) -> None:
+    """Run an action against the scheduler, skipping if it isn't running (e.g. tests)."""
+    try:
+        scheduler = get_source_scheduler()
+    except RuntimeError:
+        return
+    action(scheduler)
 
 
 # ---------------------------------------------------------------------------
@@ -109,45 +107,22 @@ async def create_source(
     background — marking all current content as already-seen so the first
     real poll only surfaces genuinely new items.
     """
-    supported = AdapterRegistry.get_supported_types()
-    if body.type not in supported:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported source type: {body.type}. Supported: {supported}",
-        )
-
-    now = datetime.now(timezone.utc)
-    source_id = str(uuid.uuid4())
-
     config = SourceConfig(
-        id=source_id,
+        id=str(uuid.uuid4()),
         name=body.name,
         url=str(body.url),
         type=body.type,
         poll_interval=body.poll_interval,
-        is_active=True,
-        created_at=now,
-        updated_at=now,
-        last_poll_at=None,
-        last_error=None,
-        error_count=0,
-        rate_limit=None,
         metadata=body.metadata,
-        baseline_complete=False,
     )
 
-    await redis.set(_redis_key(source_id), config.to_redis())
+    await redis.set(_redis_key(config.id), config.to_redis())
 
     # Run baseline scrape in background — marks existing content as seen
     # so polls only queue items published after this moment
     background_tasks.add_task(perform_baseline_scrape, config, redis)
 
-    try:
-        scheduler: SourceScheduler = get_source_scheduler()
-        if config.is_active:
-            scheduler.add_source(config)
-    except RuntimeError:
-        pass  # Scheduler not running (e.g. tests)
+    _with_scheduler(lambda s: s.add_source(config))
 
     return _to_response(config)
 
@@ -158,15 +133,15 @@ async def list_sources(
     _api_key: str = Depends(get_current_api_key),
 ) -> List[SourceResponse]:
     """List all monitored sources."""
-    keys = await redis.keys(f"{_REDIS_KEY_PREFIX}*")
     sources = []
-    for key in keys:
+    async for key in redis.scan_iter(match=f"{_REDIS_KEY_PREFIX}*"):
         raw = await redis.get(key)
-        if raw is not None:
-            try:
-                sources.append(_to_response(SourceConfig.from_redis(raw)))
-            except Exception:
-                pass  # Skip corrupted entries
+        if raw is None:
+            continue
+        try:
+            sources.append(_to_response(SourceConfig.from_redis(raw)))
+        except Exception:
+            logger.warning(f"Skipping corrupted source entry at {key}", exc_info=True)
     return sources
 
 
@@ -206,16 +181,15 @@ async def update_source(
 
     await redis.set(_redis_key(source_id), config.to_redis())
 
-    try:
-        scheduler: SourceScheduler = get_source_scheduler()
+    def sync_schedule(scheduler: SourceScheduler) -> None:
         if was_active and config.is_active:
             scheduler.update_source(config)
         elif not was_active and config.is_active:
             scheduler.add_source(config)
         elif was_active and not config.is_active:
             scheduler.remove_source(source_id)
-    except RuntimeError:
-        pass  # Scheduler not running (e.g. tests)
+
+    _with_scheduler(sync_schedule)
 
     return _to_response(config)
 
@@ -228,13 +202,7 @@ async def delete_source(
 ) -> None:
     """Remove a monitored source."""
     await _get_source_or_404(source_id, redis)
-
-    try:
-        scheduler: SourceScheduler = get_source_scheduler()
-        scheduler.remove_source(source_id)
-    except RuntimeError:
-        pass  # Scheduler not running (e.g. tests)
-
+    _with_scheduler(lambda s: s.remove_source(source_id))
     await redis.delete(_redis_key(source_id))
 
 
