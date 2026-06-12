@@ -40,20 +40,13 @@ async def perform_baseline_scrape(source_config: SourceConfig, redis: Redis) -> 
     Returns:
         Number of items marked as seen (0 on error).
     """
-    logger.info(
-        "Starting baseline scrape for source %s (%s)",
-        source_config.id,
-        source_config.name,
-    )
+    logger.info(f"Starting baseline scrape for source {source_config.id} ({source_config.name})")
 
     try:
         adapter = AdapterRegistry.create(source_config)
         items = await adapter.fetch()
     except Exception:
-        logger.exception(
-            "Baseline fetch failed for source %s — proceeding without baseline",
-            source_config.id,
-        )
+        logger.exception(f"Baseline fetch failed for source {source_config.id} — proceeding without baseline")
         return 0
 
     if not items:
@@ -80,11 +73,7 @@ async def perform_baseline_scrape(source_config: SourceConfig, redis: Redis) -> 
     await pipeline.execute()
     await _mark_baseline_complete(source_config, redis)
 
-    logger.info(
-        "Baseline complete for source %s: marked %d items as seen",
-        source_config.id,
-        marked,
-    )
+    logger.info(f"Baseline complete for source {source_config.id}: marked {marked} items as seen")
     return marked
 
 

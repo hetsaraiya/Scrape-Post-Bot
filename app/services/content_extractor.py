@@ -49,10 +49,7 @@ class ContentExtractor:
                 # Check robots.txt compliance
                 allowed = await self._robots_checker.can_fetch(url, session)
                 if not allowed:
-                    logger.warning(
-                        "robots.txt denies access to %s, skipping extraction",
-                        url,
-                    )
+                    logger.warning(f"robots.txt denies access to {url}, skipping extraction")
                     return None
 
                 # Apply rate limiting before fetch
@@ -61,11 +58,7 @@ class ContentExtractor:
                 # Fetch article HTML
                 response = await session.get(url, timeout=30.0)
                 if response.status_code >= 400:
-                    logger.error(
-                        "HTTP %d fetching article %s",
-                        response.status_code,
-                        url,
-                    )
+                    logger.error(f"HTTP {response.status_code} fetching article {url}")
                     return None
 
             # Extract clean text with trafilatura
@@ -83,12 +76,7 @@ class ContentExtractor:
                 return extracted
 
             if extracted:
-                logger.warning(
-                    "Extracted content from %s too short (%d < %d chars)",
-                    url,
-                    len(extracted),
-                    min_length,
-                )
+                logger.warning(f"Extracted content from {url} too short ({len(extracted)} < {min_length} chars)")
             else:
                 logger.warning(f"trafilatura returned no content for {url}")
 

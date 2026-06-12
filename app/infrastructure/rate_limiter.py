@@ -65,9 +65,7 @@ class DomainRateLimiter:
             await asyncio.wait_for(self.acquire(url), timeout=timeout)
             return True
         except asyncio.TimeoutError:
-            logger.warning(
-                "Rate limit timeout for %s after %.1fs", url, timeout
-            )
+            logger.warning(f"Rate limit timeout for {url} after {timeout:.1f}s")
             return False
 
 

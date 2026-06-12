@@ -27,12 +27,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
             logger.info(f"Request started: {request.method} {request.url.path}")
             response = await call_next(request)
             response.headers[self.header_name] = cid
-            logger.info(
-                "Request finished: %s %s status=%s",
-                request.method,
-                request.url.path,
-                response.status_code,
-            )
+            logger.info(f"Request finished: {request.method} {request.url.path} status={response.status_code}")
             return response
         finally:
             correlation_id_var.reset(token)
