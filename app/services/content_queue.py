@@ -29,7 +29,7 @@ class ContentQueue:
         """Add item to the queue. Returns new queue length."""
         data = item.to_redis()
         length: int = await self._redis.lpush(self._key, data)
-        logger.debug("Pushed item %s to queue (length=%d)", item.id, length)
+        logger.debug(f"Pushed item {item.id} to queue (length={length})")
         return length
 
     async def pop(self) -> ContentItem | None:
@@ -61,7 +61,7 @@ class ContentQueue:
         await pipe.execute()
 
         new_length = await self.length()
-        logger.debug("Pushed %d items to queue (length=%d)", len(items), new_length)
+        logger.debug(f"Pushed {len(items)} items to queue (length={new_length})")
         return new_length
 
 

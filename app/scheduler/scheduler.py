@@ -71,7 +71,7 @@ async def init_scheduler(redis_client: aioredis.Redis) -> AsyncIOScheduler:
                 source_scheduler.add_source(config)
                 loaded += 1
         except Exception:
-            logger.exception("Failed to load source from Redis key %s", key)
+            logger.exception(f"Failed to load source from Redis key {key}")
 
     logger.info(f"Loaded {loaded} active sources into scheduler")
     return scheduler

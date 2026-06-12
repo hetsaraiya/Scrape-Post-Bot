@@ -54,18 +54,14 @@ async def pipeline_worker(redis: aioredis.Redis) -> None:
 
             # Dedup check
             if await dedup.is_duplicate(item):
-                logger.debug("Skipping duplicate: %s", item.title)
+                logger.debug(f"Skipping duplicate: {item.title}")
                 await metrics.increment("dedup_hits")
                 continue
 
             # Evaluate newsworthiness
             evaluation = await evaluator.evaluate(item)
             if not evaluation.is_newsworthy:
-                logger.info(
-                    "Not newsworthy (score=%.1f): %s",
-                    evaluation.score,
-                    item.title,
-                )
+                logger.info(f"Not newsworthy (score={evaluation.score:.1f}): {item.title}")
                 await metrics.increment("eval_failed")
                 await dedup.mark_processed(item)
                 continue
@@ -76,7 +72,7 @@ async def pipeline_worker(redis: aioredis.Redis) -> None:
             try:
                 draft = await generator.generate(item, evaluation)
             except GenerationError as exc:
-                logger.warning("Generation failed for %s: %s", item.id, exc)
+                logger.warning(f"Generation failed for {item.id}: {exc}")
                 await metrics.increment("gen_errors")
                 await dedup.mark_processed(item)
                 continue
@@ -86,7 +82,7 @@ async def pipeline_worker(redis: aioredis.Redis) -> None:
             # Store and mark processed
             await draft_store.store(draft)
             await dedup.mark_processed(item)
-            logger.info("Draft created: %s for %s", draft.id, item.title)
+            logger.info(f"Draft created: {draft.id} for {item.title}")
 
         except Exception:
             logger.exception("Pipeline worker error")

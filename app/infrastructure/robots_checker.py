@@ -50,7 +50,7 @@ class RobotsChecker:
             response.raise_for_status()
             return Protego.parse(response.text)
         except Exception:
-            logger.warning("Failed to fetch robots.txt from %s", robots_url)
+            logger.warning(f"Failed to fetch robots.txt from {robots_url}")
             return None
 
     async def can_fetch(
@@ -73,14 +73,10 @@ class RobotsChecker:
             rp = self._cache[domain]
             allowed = rp.can_fetch(url, self.user_agent)
             if not allowed:
-                logger.warning(
-                    "robots.txt denies access to %s for %s",
-                    url,
-                    self.user_agent,
-                )
+                logger.warning(f"robots.txt denies access to {url} for {self.user_agent}")
             return allowed
         except Exception:
-            logger.exception("Error checking robots.txt for %s", url)
+            logger.exception(f"Error checking robots.txt for {url}")
             return True  # Fail open
 
     async def get_crawl_delay(

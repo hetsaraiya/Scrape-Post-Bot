@@ -31,7 +31,7 @@ class DraftStore:
             DRAFT_INDEX,
             {draft.id: draft.created_at.timestamp()},
         )
-        logger.debug("Stored draft %s", draft.id)
+        logger.debug(f"Stored draft {draft.id}")
 
     async def get(self, draft_id: str) -> Draft | None:
         """Get a single draft by ID, or None if not found."""

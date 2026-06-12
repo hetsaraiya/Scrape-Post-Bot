@@ -90,12 +90,12 @@ class ContentExtractor:
                     min_length,
                 )
             else:
-                logger.warning("trafilatura returned no content for %s", url)
+                logger.warning(f"trafilatura returned no content for {url}")
 
             return None
 
         except Exception:
-            logger.exception("Failed to extract article from %s", url)
+            logger.exception(f"Failed to extract article from {url}")
             return None
 
 

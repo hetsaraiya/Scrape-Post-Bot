@@ -57,7 +57,7 @@ async def perform_baseline_scrape(source_config: SourceConfig, redis: Redis) -> 
         return 0
 
     if not items:
-        logger.info("Source %s returned no items during baseline", source_config.id)
+        logger.info(f"Source {source_config.id} returned no items during baseline")
         # Still mark baseline complete so polls proceed normally
         await _mark_baseline_complete(source_config, redis)
         return 0

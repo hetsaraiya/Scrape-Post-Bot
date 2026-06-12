@@ -27,14 +27,14 @@ async def poll_source_job(source_config: SourceConfig) -> None:
     Called by APScheduler for each source at its configured interval.
     Errors are caught and logged — they must not crash the scheduler.
     """
-    logger.info("Polling source %s: %s", source_config.id, source_config.name)
+    logger.info(f"Polling source {source_config.id}: {source_config.name}")
 
     try:
         adapter = AdapterRegistry.create(source_config)
         items = await adapter.fetch()
 
         if not items:
-            logger.debug("No new items from %s", source_config.id)
+            logger.debug(f"No new items from {source_config.id}")
             return
 
         from app.core.redis import get_redis
@@ -44,17 +44,12 @@ async def poll_source_job(source_config: SourceConfig) -> None:
         new_items = await _filter_unseen(source_config.id, items, redis)
 
         if not new_items:
-            logger.debug("All %d items from %s already seen", len(items), source_config.id)
+            logger.debug(f"All {len(items)} items from {source_config.id} already seen")
             return
 
         queue = ContentQueue(redis)
         await queue.push_batch(new_items)
-        logger.info(
-            "Queued %d new items from %s (%d already seen)",
-            len(new_items),
-            source_config.id,
-            len(items) - len(new_items),
-        )
+        logger.info(f"Queued {len(new_items)} new items from {source_config.id} ({len(items) - len(new_items)} already seen)")
 
         # Mark newly queued items as seen
         await mark_items_seen(
@@ -64,7 +59,7 @@ async def poll_source_job(source_config: SourceConfig) -> None:
         )
 
     except Exception:
-        logger.exception("Failed to poll source %s", source_config.id)
+        logger.exception(f"Failed to poll source {source_config.id}")
 
 
 async def _filter_unseen(
@@ -112,12 +107,7 @@ class SourceScheduler:
             replace_existing=True,
             max_instances=1,
         )
-        logger.info(
-            "Scheduled source %s every %ds (job_id=%s)",
-            source_config.id,
-            interval,
-            job_id,
-        )
+        logger.info(f"Scheduled source {source_config.id} every {interval}s (job_id={job_id})")
         return job_id
 
     def remove_source(self, source_id: str) -> bool:
@@ -125,10 +115,10 @@ class SourceScheduler:
         job_id = self._job_id(source_id)
         try:
             self.scheduler.remove_job(job_id)
-            logger.info("Removed job for source %s", source_id)
+            logger.info(f"Removed job for source {source_id}")
             return True
         except JobLookupError:
-            logger.debug("Job not found for source %s", source_id)
+            logger.debug(f"Job not found for source {source_id}")
             return False
 
     def update_source(self, source_config: SourceConfig) -> bool:

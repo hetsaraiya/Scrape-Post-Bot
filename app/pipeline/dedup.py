@@ -31,18 +31,18 @@ class DedupService:
 
         # Within-source: check URL
         if await self.redis.sismember(source_key, item.url):
-            logger.debug("Within-source duplicate (URL): %s", item.url)
+            logger.debug(f"Within-source duplicate (URL): {item.url}")
             return True
 
         # Within-source: check content hash
         if item.content_hash and await self.redis.sismember(source_key, item.content_hash):
-            logger.debug("Within-source duplicate (hash): %s", item.content_hash)
+            logger.debug(f"Within-source duplicate (hash): {item.content_hash}")
             return True
 
         # Cross-source: check normalized title fingerprint
         fingerprint = self._title_fingerprint(item.title)
         if await self.redis.sismember("dedup:cross_source", fingerprint):
-            logger.debug("Cross-source duplicate (title): %s", item.title)
+            logger.debug(f"Cross-source duplicate (title): {item.title}")
             return True
 
         return False

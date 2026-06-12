@@ -60,5 +60,5 @@ class DraftGenerator:
             )
 
         except Exception as exc:
-            logger.error("Generation failed for %s: %s", item.id, exc)
+            logger.error(f"Generation failed for {item.id}: {exc}")
             raise GenerationError(f"Failed to generate draft for {item.id}: {exc}") from exc

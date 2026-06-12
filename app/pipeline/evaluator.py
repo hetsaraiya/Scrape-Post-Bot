@@ -88,7 +88,7 @@ class ContentEvaluator:
             )
 
         except Exception as exc:
-            logger.warning("Evaluation failed for %s: %s", item.id, exc)
+            logger.warning(f"Evaluation failed for {item.id}: {exc}")
             return EvaluationResult(
                 score=0,
                 reason=f"Evaluation failed: {exc}",

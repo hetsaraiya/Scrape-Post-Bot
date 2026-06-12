@@ -34,7 +34,7 @@ class DomainRateLimiter:
             if parsed.netloc:
                 return f"{parsed.scheme}://{parsed.netloc}"
         except Exception:
-            logger.warning("Failed to parse URL for rate limiting: %s", url)
+            logger.warning(f"Failed to parse URL for rate limiting: {url}")
         return "__default__"
 
     def get_limiter(self, url: str) -> AsyncLimiter:
@@ -45,7 +45,7 @@ class DomainRateLimiter:
                 max_rate=self.default_burst,
                 time_period=self.default_burst / self.default_rate,
             )
-            logger.debug("Created rate limiter for domain: %s", key)
+            logger.debug(f"Created rate limiter for domain: {key}")
         return self._limiters[key]
 
     async def acquire(self, url: str) -> None:

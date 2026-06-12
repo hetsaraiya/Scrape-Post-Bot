@@ -60,18 +60,18 @@ class BlogAdapter(SourceAdapter):
         """Scrape article links from an HTML listing page and extract each."""
         article_urls = self._extract_article_urls(html, base_url)
         if not article_urls:
-            logger.warning("No article links found on %s", base_url)
+            logger.warning(f"No article links found on {base_url}")
             return []
 
         new_urls = await self._filter_seen_urls(article_urls)
         skipped = len(article_urls) - len(new_urls)
         if skipped:
-            logger.info("Skipping %d/%d already processed articles", skipped, len(article_urls))
+            logger.info(f"Skipping {skipped}/{len(article_urls)} already processed articles")
         if not new_urls:
-            logger.info("No new articles found on %s", base_url)
+            logger.info(f"No new articles found on {base_url}")
             return []
 
-        logger.info("Discovered %d new article URLs from %s", len(new_urls), base_url)
+        logger.info(f"Discovered {len(new_urls)} new article URLs from {base_url}")
         return await self._extract_from_urls(new_urls, origin=base_url)
 
     # --- Extraction loop --------------------------------------------------
@@ -93,14 +93,14 @@ class BlogAdapter(SourceAdapter):
             )
 
             if not content:
-                logger.debug("Could not extract content from %s", article_url)
+                logger.debug(f"Could not extract content from {article_url}")
                 continue
 
             item = self._build_item(article_url, content)
             if item:
                 items.append(item)
 
-        logger.info("Fetched %d blog articles from %s", len(items), origin)
+        logger.info(f"Fetched {len(items)} blog articles from {origin}")
         return items
 
     # --- Deduplication ----------------------------------------------------

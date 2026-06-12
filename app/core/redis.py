@@ -30,7 +30,7 @@ async def init_redis(url: str) -> aioredis.Redis:
             max_connections=20,
         )
         await _redis_client.ping()
-        logger.info("Redis connected at %s", url)
+        logger.info(f"Redis connected at {url}")
         return _redis_client
     except (aioredis.ConnectionError, OSError) as exc:
         _redis_client = None
