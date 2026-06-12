@@ -31,11 +31,11 @@ export default function Drafts() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <Header
         title="Drafts"
-        subtitle="LinkedIn-ready posts generated from monitored sources."
+        subtitle="Generated posts, ready to review and publish."
         actions={
           <>
             <Button variant="secondary" onClick={refetch}>
-              ↻ Refresh
+              Refresh
             </Button>
             <Button variant="secondary" onClick={() => setLimit((n) => n + 50)}>
               Load more
@@ -68,10 +68,10 @@ export default function Drafts() {
           footer={
             <>
               <Button variant="secondary" onClick={() => copy(selected.body)}>
-                {copied ? '✓ Copied' : 'Copy body'}
+                {copied ? 'Copied' : 'Copy text'}
               </Button>
               <Button onClick={() => window.open(selected.original_url, '_blank', 'noopener')}>
-                View original ↗
+                Open original
               </Button>
             </>
           }
@@ -79,7 +79,7 @@ export default function Drafts() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <Badge tone={STATUS_TONE[selected.status]}>{selected.status}</Badge>
-              <Badge tone="accent">score {selected.evaluation_score.toFixed(2)}</Badge>
+              <Badge tone="accent">Score {selected.evaluation_score.toFixed(2)}</Badge>
               <Badge>{formatDate(selected.created_at)}</Badge>
             </div>
             <Section label="Evaluation">
@@ -170,16 +170,7 @@ function DraftCard({ draft, onOpen }) {
 function Section({ label, children }) {
   return (
     <div>
-      <div
-        style={{
-          fontSize: 11,
-          color: t.colors.textMuted,
-          textTransform: 'uppercase',
-          letterSpacing: '.05em',
-          fontWeight: 600,
-          marginBottom: 6,
-        }}
-      >
+      <div style={{ fontSize: 13, color: t.colors.textMuted, fontWeight: 500, marginBottom: 6 }}>
         {label}
       </div>
       {children}

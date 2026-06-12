@@ -53,14 +53,14 @@ export default function Dashboard() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <Header
         title="Dashboard"
-        subtitle="Real-time pipeline status and processing metrics."
+        subtitle="What the pipeline is doing right now."
         actions={
           <>
             <Button variant="secondary" onClick={resetMetrics} loading={resetting}>
               Reset metrics
             </Button>
             <Button onClick={runPipeline} loading={running}>
-              ▶ Run pipeline
+              Run pipeline
             </Button>
           </>
         }
@@ -123,10 +123,8 @@ export default function Dashboard() {
 function StatusItem({ label, value }) {
   return (
     <div>
-      <div style={{ fontSize: 11, color: t.colors.textMuted, textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600 }}>
-        {label}
-      </div>
-      <div style={{ marginTop: 6, fontSize: 14, fontWeight: 500 }}>{value}</div>
+      <div style={{ fontSize: 13, color: t.colors.textMuted }}>{label}</div>
+      <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500 }}>{value}</div>
     </div>
   );
 }
@@ -143,8 +141,8 @@ export function Header({ title, subtitle, actions }) {
   return (
     <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
       <div>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: '-.01em' }}>{title}</h1>
-        {subtitle && <p style={{ margin: '6px 0 0', color: t.colors.textMuted, fontSize: 13 }}>{subtitle}</p>}
+        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600, letterSpacing: '-.01em' }}>{title}</h1>
+        {subtitle && <p style={{ margin: '4px 0 0', color: t.colors.textMuted, fontSize: 14 }}>{subtitle}</p>}
       </div>
       <div style={{ display: 'flex', gap: 8 }}>{actions}</div>
     </header>
@@ -153,7 +151,7 @@ export function Header({ title, subtitle, actions }) {
 
 export function SectionTitle({ children }) {
   return (
-    <h2 style={{ fontSize: 12, fontWeight: 600, color: t.colors.textMuted, textTransform: 'uppercase', letterSpacing: '.08em', margin: '0 0 12px' }}>
+    <h2 style={{ fontSize: 14, fontWeight: 600, color: t.colors.text, margin: '0 0 12px' }}>
       {children}
     </h2>
   );

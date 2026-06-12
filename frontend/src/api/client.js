@@ -1,14 +1,5 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-const getApiKey = () => localStorage.getItem('apiKey') || import.meta.env.VITE_API_KEY || '';
-
-export const setApiKey = (key) => {
-  if (key) localStorage.setItem('apiKey', key);
-  else localStorage.removeItem('apiKey');
-};
-
-export const hasApiKey = () => Boolean(getApiKey());
-
 class ApiError extends Error {
   constructor(message, status, detail) {
     super(message);
@@ -18,7 +9,7 @@ class ApiError extends Error {
 }
 
 async function request(path, { method = 'GET', body, signal } = {}) {
-  const headers = { 'X-API-Key': getApiKey() };
+  const headers = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -65,3 +56,4 @@ export const api = {
 };
 
 export { ApiError };
+

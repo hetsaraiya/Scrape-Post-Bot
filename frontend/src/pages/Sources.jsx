@@ -54,8 +54,8 @@ export default function Sources() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <Header
         title="Sources"
-        subtitle="Configure monitored AI news sources."
-        actions={<Button onClick={() => setCreating(true)}>+ New source</Button>}
+        subtitle="The feeds and pages the pipeline watches."
+        actions={<Button onClick={() => setCreating(true)}>Add source</Button>}
       />
 
       <ErrorBanner error={error} onRetry={refetch} />
@@ -67,8 +67,8 @@ export default function Sources() {
       ) : !data?.length ? (
         <EmptyState
           title="No sources yet"
-          hint="Add your first source to start monitoring AI news."
-          action={<Button onClick={() => setCreating(true)}>+ New source</Button>}
+          hint="Add a feed or page and the pipeline will start watching it."
+          action={<Button onClick={() => setCreating(true)}>Add source</Button>}
         />
       ) : (
         <div style={{ display: 'grid', gap: 12 }}>
@@ -130,7 +130,7 @@ function SourceRow({ source: s, onEdit, onDelete, onPoll, onToggle }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
           <span style={{ fontWeight: 600, fontSize: 14 }}>{s.name}</span>
           <Badge tone="accent">{s.type}</Badge>
-          <Badge tone={s.is_active ? 'success' : 'neutral'}>{s.is_active ? 'active' : 'paused'}</Badge>
+          <Badge tone={s.is_active ? 'success' : 'neutral'}>{s.is_active ? 'Active' : 'Paused'}</Badge>
           {s.error_count > 0 && <Badge tone="danger">{s.error_count} errors</Badge>}
         </div>
         <div
@@ -145,15 +145,15 @@ function SourceRow({ source: s, onEdit, onDelete, onPoll, onToggle }) {
         >
           {s.url}
         </div>
-        <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: t.colors.textDim }}>
-          <span>Poll every {formatInterval(s.poll_interval)}</span>
-          <span>Last poll: {relativeTime(s.last_poll_at)}</span>
+        <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 12, color: t.colors.textDim }}>
+          <span>Checks every {formatInterval(s.poll_interval)}</span>
+          <span>Last checked {relativeTime(s.last_poll_at)}</span>
           {s.last_error && <span style={{ color: t.colors.danger }}>{s.last_error}</span>}
         </div>
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <Button variant="ghost" size="sm" onClick={onPoll} title="Trigger immediate poll">
-          Poll
+        <Button variant="ghost" size="sm" onClick={onPoll} title="Check this source now">
+          Check now
         </Button>
         <Button variant="ghost" size="sm" onClick={onToggle}>
           {s.is_active ? 'Pause' : 'Resume'}
