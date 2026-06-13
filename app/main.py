@@ -1,10 +1,14 @@
 """FastAPI application with lifespan manager."""
 
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.routes.health import router as health_router
 from app.api.v1.drafts import router as drafts_router
@@ -78,3 +82,21 @@ app.include_router(health_router)
 app.include_router(sources_router, prefix="/api/v1")
 app.include_router(drafts_router, prefix="/api/v1")
 app.include_router(pipeline_router, prefix="/api/v1")
+
+
+class SPAStaticFiles(StaticFiles):
+    """Serve the built frontend, falling back to index.html for client-side routes."""
+
+    async def get_response(self, path: str, scope):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code == 404:
+                return await super().get_response("index.html", scope)
+            raise
+
+
+# In the Docker image the built frontend lives in ./static; absent in local dev.
+_static_dir = Path(os.getenv("STATIC_DIR", "static"))
+if _static_dir.is_dir():
+    app.mount("/", SPAStaticFiles(directory=_static_dir, html=True), name="frontend")

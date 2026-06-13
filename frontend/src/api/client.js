@@ -1,4 +1,6 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// Empty string = same-origin (the Docker image serves the SPA from the API).
+// Unset (local dev via `npm run dev`) falls back to the local backend.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
 class ApiError extends Error {
   constructor(message, status, detail) {
