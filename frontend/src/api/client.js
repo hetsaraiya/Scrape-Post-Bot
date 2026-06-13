@@ -1,6 +1,8 @@
 // Empty string = same-origin (the Docker image serves the SPA from the API).
 // Unset (local dev via `npm run dev`) falls back to the local backend.
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+// Baked into the build via VITE_API_KEY; sent as X-API-Key on every request.
+const API_KEY = import.meta.env.VITE_API_KEY ?? '';
 
 class ApiError extends Error {
   constructor(message, status, detail) {
@@ -13,6 +15,7 @@ class ApiError extends Error {
 async function request(path, { method = 'GET', body, signal } = {}) {
   const headers = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (API_KEY) headers['X-API-Key'] = API_KEY;
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method,

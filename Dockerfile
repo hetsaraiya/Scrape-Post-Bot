@@ -8,6 +8,9 @@ RUN npm ci
 COPY frontend/ ./
 # Empty base URL = same-origin requests; the API serves the built SPA
 ENV VITE_API_BASE_URL=""
+# API key baked into the SPA bundle so it can call the protected API
+ARG VITE_API_KEY=""
+ENV VITE_API_KEY=$VITE_API_KEY
 RUN npm run build
 
 # --- Stage 2: resolve Python dependencies with uv --------------------------
